@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import { Link, type LinkProps } from 'react-router-dom';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'md' | 'lg';
@@ -40,7 +41,7 @@ export function Button({ variant, size, className = '', children, ...rest }: But
   );
 }
 
-// Anchor styled as a button — for links (in-page anchors now, routes later).
+// Anchor styled as a button — for in-page anchors and external links.
 type ButtonLinkProps = StyleProps &
   AnchorHTMLAttributes<HTMLAnchorElement> & { children: ReactNode };
 
@@ -49,5 +50,22 @@ export function ButtonLink({ variant, size, className = '', children, ...rest }:
     <a className={classes({ variant, size }, className)} {...rest}>
       {children}
     </a>
+  );
+}
+
+// React Router <Link> styled as a button — for client-side navigation.
+type ButtonRouterLinkProps = StyleProps & LinkProps & { children: ReactNode };
+
+export function ButtonRouterLink({
+  variant,
+  size,
+  className = '',
+  children,
+  ...rest
+}: ButtonRouterLinkProps) {
+  return (
+    <Link className={classes({ variant, size }, className)} {...rest}>
+      {children}
+    </Link>
   );
 }

@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Container } from '../../components/Container';
-import { ButtonLink } from '../../components/Button';
+import { ButtonRouterLink } from '../../components/Button';
 import { Reveal } from '../../components/Reveal';
 
 export function CallToAction() {
@@ -23,10 +23,10 @@ export function CallToAction() {
                 Join students and professionals turning good intentions into daily habits.
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                {/* Becomes the signup route once auth ships (Phase 1 backend). */}
-                <ButtonLink href="#" size="lg">
+                {/* Signup lands here once auth ships; onboarding is the entry for now. */}
+                <ButtonRouterLink to="/onboarding" size="lg">
                   Start free today <ArrowRight className="size-4" />
-                </ButtonLink>
+                </ButtonRouterLink>
               </div>
               <p className="mt-5 text-sm text-slate-500">
                 Free plan · 3 routines · AI starter suggestion

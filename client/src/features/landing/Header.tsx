@@ -1,6 +1,6 @@
 import { Container } from '../../components/Container';
 import { Logo } from '../../components/Logo';
-import { ButtonLink } from '../../components/Button';
+import { ButtonRouterLink } from '../../components/Button';
 
 export function Header() {
   return (
@@ -20,10 +20,10 @@ export function Header() {
             How it works
           </a>
         </nav>
-        {/* Auth arrives in a later phase — points at the signup anchor for now. */}
-        <ButtonLink href="#get-started" size="md">
+        {/* Auth arrives in a later phase — onboarding is the entry point for now. */}
+        <ButtonRouterLink to="/onboarding" size="md">
           Get started
-        </ButtonLink>
+        </ButtonRouterLink>
       </Container>
     </header>
   );

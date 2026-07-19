@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Container } from '../../components/Container';
-import { ButtonLink } from '../../components/Button';
+import { ButtonLink, ButtonRouterLink } from '../../components/Button';
 import { ProductPreview } from './ProductPreview';
 
 export function Hero() {
@@ -61,9 +61,9 @@ export function Hero() {
           {...rise(0.3)}
           className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
         >
-          <ButtonLink href="#get-started" size="lg">
+          <ButtonRouterLink to="/onboarding" size="lg">
             Start free <ArrowRight className="size-4" />
-          </ButtonLink>
+          </ButtonRouterLink>
           <ButtonLink href="#how-it-works" variant="secondary" size="lg">
             See how it works
           </ButtonLink>
