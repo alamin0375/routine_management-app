@@ -1,1 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Premium dark base — Linear/Raycast-inspired */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #08080d;
+  color: #e2e4ee;
+  font-feature-settings:
+    'cv02',
+    'cv03',
+    'cv04',
+    'cv11'; /* Inter alternates for a cleaner, Linear-like look */
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
