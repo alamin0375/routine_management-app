@@ -26,7 +26,7 @@ Guiding principles:
 |---|---|
 | Frontend | React + TypeScript (Vite), Tailwind CSS |
 | State management | Zustand (client state), TanStack Query (server state) |
-| Backend | Node.js + TypeScript, Express (or Fastify) |
+| Backend | Node.js + TypeScript, Fastify (see TECHNICAL_ARCHITECTURE.md) |
 | Database | PostgreSQL via Prisma ORM |
 | Auth | JWT-based auth (consider Auth.js / Clerk later) |
 | AI features | Anthropic Claude API (`claude-sonnet-5` for routine suggestions and insights) |
