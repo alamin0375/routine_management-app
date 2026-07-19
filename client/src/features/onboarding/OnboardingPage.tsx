@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -6,12 +5,14 @@ import { Button } from '../../components/Button';
 import { OptionCard } from './OptionCard';
 import { OnboardingLayout } from './OnboardingLayout';
 import { GOALS } from './goals';
+import { useOnboardingStore } from './store';
 
-// Step 1 of onboarding: pick a main goal. The selection travels to the next
-// step via router state — persistence arrives with the backend, and the
-// details answers feed the AI onboarding chat (Phase 4).
+// Step 1 of onboarding: pick a main goal. Answers live in the onboarding
+// store so Back navigation never loses them; persistence arrives with the
+// backend, and the collected answers feed the AI onboarding chat (Phase 4).
 export function OnboardingPage() {
-  const [goal, setGoal] = useState<string | null>(null);
+  const goal = useOnboardingStore((s) => s.goal);
+  const setGoal = useOnboardingStore((s) => s.setGoal);
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
@@ -23,7 +24,7 @@ export function OnboardingPage() {
 
   const handleContinue = () => {
     if (goal === null) return;
-    navigate('/onboarding/details', { state: { goal } });
+    navigate('/onboarding/details');
   };
 
   return (

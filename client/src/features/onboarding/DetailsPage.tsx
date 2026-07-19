@@ -1,26 +1,56 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { AlarmClock, ArrowRight, Coffee, Moon, Sandwich, UtensilsCrossed } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../../components/Button';
 import { OnboardingLayout } from './OnboardingLayout';
+import { TimePicker } from './TimePicker';
+import { FocusHoursField } from './FocusHoursField';
 import { findGoal } from './goals';
+import { isScheduleComplete, useOnboardingStore, type TimeKey } from './store';
 
-// Step 2 of onboarding. Receives the chosen goal from Step 1 via router
-// state; visiting directly without one redirects back to Step 1. The actual
-// details questions (schedule, free time) land here next — they feed the AI
-// routine suggestion in Phase 4.
+// Step 2 of onboarding: daily schedule anchors. Answers live in the
+// onboarding store (Back never loses them); together with the goal they feed
+// the AI routine suggestion in Phase 4.
+
+const TIME_FIELDS: readonly { key: TimeKey; label: string; icon: typeof AlarmClock }[] = [
+  { key: 'wakeTime', label: 'Wake up', icon: AlarmClock },
+  { key: 'sleepTime', label: 'Sleep', icon: Moon },
+  { key: 'breakfastTime', label: 'Breakfast', icon: Coffee },
+  { key: 'lunchTime', label: 'Lunch', icon: Sandwich },
+  { key: 'dinnerTime', label: 'Dinner', icon: UtensilsCrossed },
+];
+
 export function DetailsPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const reduce = useReducedMotion();
 
-  const goalValue = (location.state as { goal?: string } | null)?.goal;
-  const goal = findGoal(goalValue);
+  const goalValue = useOnboardingStore((s) => s.goal);
+  const times = useOnboardingStore((s) => s.times);
+  const focusHours = useOnboardingStore((s) => s.focusHours);
+  const setTime = useOnboardingStore((s) => s.setTime);
+  const setFocusHours = useOnboardingStore((s) => s.setFocusHours);
+  const goal = findGoal(goalValue ?? undefined);
+
+  // Errors render only after a submit attempt — no red fields on first paint.
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!goal) navigate('/onboarding', { replace: true });
   }, [goal, navigate]);
 
   if (!goal) return null;
+
+  const timeError = (key: TimeKey) =>
+    submitted && times[key] === '' ? 'Please pick a time.' : undefined;
+  const focusError = submitted && focusHours === null ? 'Please choose an option.' : undefined;
+  const isComplete = isScheduleComplete(times, focusHours);
+
+  const handleContinue = () => {
+    setSubmitted(true);
+    if (!isComplete) return;
+    navigate('/onboarding/preferences');
+  };
 
   const rise = (delay: number) => ({
     initial: reduce ? false : { opacity: 0, y: 20 },
@@ -31,7 +61,7 @@ export function DetailsPage() {
   const Icon = goal.icon;
 
   return (
-    <OnboardingLayout step={2} backTo="/onboarding" backLabel="Back to goals">
+    <OnboardingLayout step={2} backTo="/onboarding" backLabel="Back to goals" showStartOver>
       {/* Selected-goal chip carried over from Step 1 */}
       <motion.span
         {...rise(0)}
@@ -47,20 +77,56 @@ export function DetailsPage() {
         Tell us about your days
       </motion.h1>
       <motion.p {...rise(0.16)} className="mt-3 text-lg leading-relaxed text-slate-400">
-        Next we&apos;ll ask a couple of quick questions about your schedule, so your{' '}
-        {goal.label.toLowerCase()} routine fits the time you actually have.
+        These anchors help us fit your {goal.label.toLowerCase()} routine around the day you
+        actually live.
       </motion.p>
 
-      {/* Placeholder panel — the schedule questions are built in the next iteration */}
-      <motion.div
+      <motion.form
         {...rise(0.24)}
-        className="mt-9 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center backdrop-blur-sm"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleContinue();
+        }}
+        className="mt-9 space-y-8"
       >
-        <p className="text-sm leading-relaxed text-slate-400">
-          This step is under construction — schedule questions arrive in the next iteration of the
-          onboarding flow.
-        </p>
-      </motion.div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm sm:p-7">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-violet-400">
+            Daily schedule
+          </h2>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {TIME_FIELDS.map(({ key, label, icon }) => (
+              <TimePicker
+                key={key}
+                id={key}
+                label={label}
+                icon={icon}
+                value={times[key]}
+                onChange={(value) => setTime(key, value)}
+                error={timeError(key)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm sm:p-7">
+          <FocusHoursField value={focusHours} onChange={setFocusHours} error={focusError} />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <p
+            className="text-sm text-slate-500"
+            role={submitted && !isComplete ? 'alert' : undefined}
+          >
+            {submitted && !isComplete
+              ? 'Please fill in the highlighted fields.'
+              : 'All fields are required — rough times are fine.'}
+          </p>
+          <Button type="submit" size="lg">
+            Continue <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      </motion.form>
     </OnboardingLayout>
   );
 }

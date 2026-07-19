@@ -1,21 +1,38 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Container } from '../../components/Container';
 import { Logo } from '../../components/Logo';
+import { useOnboardingStore } from './store';
 
 // Shared shell for onboarding steps: dark backdrop, minimal header,
-// and a step progress indicator.
+// and a step progress indicator. Back preserves all answers (they live in
+// the onboarding store); "Start over" clears the store and returns to Step 1.
 const TOTAL_STEPS = 3;
 
 interface OnboardingLayoutProps {
   step: number; // 1-based
   backTo: string;
   backLabel: string;
+  showStartOver?: boolean;
   children: ReactNode;
 }
 
-export function OnboardingLayout({ step, backTo, backLabel, children }: OnboardingLayoutProps) {
+export function OnboardingLayout({
+  step,
+  backTo,
+  backLabel,
+  showStartOver = false,
+  children,
+}: OnboardingLayoutProps) {
+  const navigate = useNavigate();
+  const reset = useOnboardingStore((s) => s.reset);
+
+  const handleStartOver = () => {
+    reset();
+    navigate('/onboarding');
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#08080d] text-slate-200 antialiased selection:bg-violet-500/30 selection:text-white">
       {/* Background glow, softer than the landing hero */}
@@ -28,12 +45,23 @@ export function OnboardingLayout({ step, backTo, backLabel, children }: Onboardi
           <Link to="/" aria-label="RoutineApp home">
             <Logo size="sm" />
           </Link>
-          <Link
-            to={backTo}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="size-4" /> {backLabel}
-          </Link>
+          <div className="flex items-center gap-5">
+            {showStartOver && (
+              <button
+                type="button"
+                onClick={handleStartOver}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-white"
+              >
+                <RotateCcw className="size-3.5" /> Start over
+              </button>
+            )}
+            <Link
+              to={backTo}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+            >
+              <ArrowLeft className="size-4" /> {backLabel}
+            </Link>
+          </div>
         </Container>
       </header>
 
