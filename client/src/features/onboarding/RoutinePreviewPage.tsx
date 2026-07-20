@@ -30,6 +30,7 @@ import {
   type ScheduleTimes,
 } from './store';
 import { FOCUS_AREAS, INTENSITIES, STYLES } from './PreferencesPage';
+import { formatTime12 } from './time';
 
 // End of the onboarding flow: a schedule assembled deterministically from the
 // user's actual answers. Placeholder for real AI generation (Phase 4) — the
@@ -37,7 +38,7 @@ import { FOCUS_AREAS, INTENSITIES, STYLES } from './PreferencesPage';
 
 interface RoutineItem {
   icon: LucideIcon;
-  time: string; // display string: "07:30" or "Morning block"
+  time: string; // display string: "7:30 AM" or "Morning block"
   sortKey: number; // minutes since midnight, for ordering
   title: string;
   detail: string;
@@ -118,7 +119,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
   const anchors: RoutineItem[] = [
     {
       icon: AlarmClock,
-      time: times.wakeTime,
+      time: formatTime12(times.wakeTime),
       sortKey: wake,
       title: 'Wake up & morning reset',
       detail: 'Water, light, a calm start',
@@ -126,7 +127,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
     },
     {
       icon: Coffee,
-      time: times.breakfastTime,
+      time: formatTime12(times.breakfastTime),
       sortKey: breakfast,
       title: 'Breakfast',
       detail: 'Fuel up before the day begins',
@@ -134,7 +135,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
     },
     {
       icon: Sandwich,
-      time: times.lunchTime,
+      time: formatTime12(times.lunchTime),
       sortKey: lunch,
       title: 'Lunch break',
       detail: 'Step away from the desk',
@@ -142,7 +143,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
     },
     {
       icon: UtensilsCrossed,
-      time: times.dinnerTime,
+      time: formatTime12(times.dinnerTime),
       sortKey: dinner,
       title: 'Dinner',
       detail: 'Unplug and recharge',
@@ -150,7 +151,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
     },
     {
       icon: Moon,
-      time: times.sleepTime,
+      time: formatTime12(times.sleepTime),
       sortKey: sleep,
       title: 'Lights out',
       detail: `Protecting tomorrow's energy`,
@@ -193,7 +194,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
       // Pin the wind-down ritual to the hour before lights out.
       focusItems.push({
         icon: block.icon,
-        time: style === 'fixed' ? toHHMM(sleep - 60) : 'Evening block',
+        time: style === 'fixed' ? formatTime12(toHHMM(sleep - 60)) : 'Evening block',
         sortKey: sleep - 60,
         title: block.title,
         detail: block.detail(goalLabel),
@@ -215,7 +216,7 @@ function buildRoutine({ times, intensity, style, focusAreas, goalLabel }: BuildI
       icon: block.icon,
       time:
         style === 'fixed'
-          ? toHHMM(startAt)
+          ? formatTime12(toHHMM(startAt))
           : `${gap.label} block · ${config.blockMinutes} min`,
       sortKey: startAt,
       title: block.title,
@@ -329,7 +330,7 @@ export function RoutinePreviewPage() {
               <GoalIcon className="size-4 text-violet-300" strokeWidth={1.8} /> {goal.label}
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-medium text-slate-300">
-              {times.wakeTime} – {times.sleepTime}
+              {formatTime12(times.wakeTime)} – {formatTime12(times.sleepTime)}
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-medium text-slate-300">
               {focusHours}h focus / day
