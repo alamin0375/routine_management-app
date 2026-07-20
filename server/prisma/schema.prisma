@@ -1,0 +1,147 @@
+// Prisma schema — implements the core data model from
+// TECHNICAL_ARCHITECTURE.md §4: users → routines → tasks → completions,
+// plus reflections, AI metering, push subscriptions, and refresh tokens.
+//
+// Load-bearing decisions (see §4 notes):
+// - Streaks are computed from Completion, never stored.
+// - Every user-owned row cascades on user delete (GDPR delete-my-data).
+// - "Day" values are @db.Date in the user's timezone; User.timezone is
+//   mandatory and every day-boundary calculation must use it.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum CompletionSource {
+  WEB
+  PUSH
+  OFFLINE_SYNC
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  passwordHash  String? // null for OAuth-only accounts
+  googleId      String?  @unique
+  emailVerified Boolean  @default(false)
+  timezone      String // IANA name (e.g. "Asia/Dhaka"); mandatory per §4
+  plan          Plan     @default(FREE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  routines       Routine[]
+  completions    Completion[]
+  reflections    Reflection[]
+  aiInteractions AiInteraction[]
+  pushSubs       PushSub[]
+  refreshTokens  RefreshToken[]
+}
+
+model Routine {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  name       String
+  isActive   Boolean   @default(true)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId])
+}
+
+model Task {
+  id         String  @id @default(uuid()) @db.Uuid
+  routineId  String  @db.Uuid
+  name       String
+  targetTime String? // "HH:mm" in the user's timezone; null = flexible block
+  daysOfWeek Int[] // ISO weekday numbers 1 (Mon) - 7 (Sun); empty = every day
+  sortOrder  Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  routine     Routine      @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  completions Completion[]
+
+  @@index([routineId])
+}
+
+model Completion {
+  id          String           @id @default(uuid()) @db.Uuid
+  taskId      String           @db.Uuid
+  userId      String           @db.Uuid
+  date        DateTime         @db.Date // the user-timezone day this completion belongs to
+  completedAt DateTime         @default(now())
+  source      CompletionSource @default(WEB)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One row per task per day — makes PUT /completions idempotent (§7).
+  @@unique([taskId, date])
+  @@index([userId, date])
+}
+
+model Reflection {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  date      DateTime @db.Date
+  mood      Int // 1-5 scale
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model AiInteraction {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  kind      String // "suggest-routine" | "refine-routine" | ... (kept open for new features)
+  tokensIn  Int
+  tokensOut Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PushSub {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  endpoint  String   @unique
+  keys      Json // { p256dh, auth } from the PushSubscription
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Rotating refresh tokens, revocable server-side (§5). Only the hash is stored.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

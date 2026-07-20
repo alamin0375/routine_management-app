@@ -20,7 +20,7 @@ Guiding principles:
 
 ## Planned Technology Stack
 
-*The project is in the planning stage — no application code exists yet. This stack is the intended direction; update this section if decisions change.*
+*This stack is the settled direction; update this section if decisions change.*
 
 | Layer | Technology |
 |---|---|
@@ -92,4 +92,11 @@ Rules:
 
 ## Current Status
 
-Planning stage. Only this CLAUDE.md exists — no application code yet. Next steps: scaffold `client/` and `server/`, set up Prisma schema for users and routines.
+In development. Done so far:
+
+- Monorepo scaffolding (`client/`, `server/`, `shared/`), lint/typecheck green.
+- Landing page and the full 3-step onboarding flow with a 12-hour time picker and deterministic routine preview (client-only; answers in a Zustand store).
+- Fastify server skeleton with `/api/v1/health`.
+- Prisma schema (`server/prisma/schema.prisma`) covering User, Routine, Task, Completion, Reflection, AiInteraction, PushSub, RefreshToken; initial migration in `server/prisma/migrations/0_init/`; `docker-compose.yml` for local Postgres + Redis. Client code generates into `server/src/generated/` (gitignored) via `npm run db:generate`.
+
+Next steps: auth (Phase 1 in TECHNICAL_ARCHITECTURE.md), then routine/checklist CRUD wired to the database.

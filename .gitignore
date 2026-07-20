@@ -27,3 +27,6 @@ coverage/
 playwright-report/
 test-results/
 .claude/
+
+# Generated code — rebuilt by `prisma generate`
+server/src/generated/
