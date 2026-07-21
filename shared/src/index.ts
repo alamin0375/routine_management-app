@@ -2,3 +2,4 @@
 // Client and server both import from here; never duplicate these types.
 export * from './schemas/health.js';
 export * from './schemas/auth.js';
+export * from './schemas/routines.js';

@@ -60,10 +60,20 @@ export const updateMeRequestSchema = z
 export type UpdateMeRequest = z.infer<typeof updateMeRequestSchema>;
 
 // Consistent error envelope (§7): machine-readable code + human message.
+// Validation failures (400 VALIDATION_ERROR) additionally carry per-field
+// details; message stays the first issue for backward compatibility.
 export const errorResponseSchema = z.object({
   error: z.object({
     code: z.string(),
     message: z.string(),
+    details: z
+      .array(
+        z.object({
+          path: z.string(), // dotted field path, e.g. "timezone" or "tasks.0.title"
+          message: z.string(),
+        }),
+      )
+      .optional(),
   }),
 });
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;

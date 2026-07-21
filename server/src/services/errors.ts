@@ -23,3 +23,9 @@ export const invalidRefreshTokenError = () =>
 
 export const unauthorizedError = () =>
   new AppError(401, 'UNAUTHORIZED', 'You must be logged in to do that.');
+
+// Also used for ownership violations — a resource that exists but belongs to
+// another user is indistinguishable from one that doesn't exist (§4: 404,
+// never 403, so ids can't be probed).
+export const notFoundError = (resource = 'Resource') =>
+  new AppError(404, 'NOT_FOUND', `${resource} not found.`);

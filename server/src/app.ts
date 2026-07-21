@@ -5,16 +5,19 @@ import type { PrismaClient } from './generated/prisma/client.js';
 import type { Env } from './config/env.js';
 import { getPrisma, disconnectPrisma } from './db/client.js';
 import { AuthService } from './services/auth.service.js';
+import { RoutineService } from './services/routine.service.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { meRoutes } from './routes/me.routes.js';
+import { routineRoutes } from './routes/routines.routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     env: Env;
     prisma: PrismaClient;
     authService: AuthService;
+    routineService: RoutineService;
   }
 }
 
@@ -41,6 +44,7 @@ export async function buildApp(env: Env) {
   app.decorate('env', env);
   app.decorate('prisma', prisma);
   app.decorate('authService', new AuthService(prisma, env));
+  app.decorate('routineService', new RoutineService(prisma));
   app.addHook('onClose', async () => {
     await disconnectPrisma();
   });
@@ -48,6 +52,7 @@ export async function buildApp(env: Env) {
   await app.register(healthRoutes, { prefix: '/api/v1' });
   await app.register(authRoutes, { prefix: '/api/v1' });
   await app.register(meRoutes, { prefix: '/api/v1' });
+  await app.register(routineRoutes, { prefix: '/api/v1' });
 
   return app;
 }

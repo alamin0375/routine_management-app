@@ -2,9 +2,11 @@ import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from
 import { ZodError } from 'zod';
 import { AppError } from '../services/errors.js';
 
-// Global error handler producing the §7 envelope: { error: { code, message } }.
-// AppError → its status/code; ZodError → 400 VALIDATION_ERROR with the first
-// field message; anything else → logged in full, generic 500 to the client.
+// Global error handler producing the §7 envelope:
+// { error: { code, message, details? } }. AppError → its status/code;
+// ZodError → 400 VALIDATION_ERROR with ALL issues in details[] (message stays
+// the first issue for backward compatibility); anything else → logged in
+// full, generic 500 to the client.
 export function errorHandler(
   this: FastifyInstance,
   error: FastifyError | AppError | ZodError,
@@ -19,11 +21,16 @@ export function errorHandler(
   }
 
   if (error instanceof ZodError) {
-    const first = error.issues[0];
+    const details = error.issues.map((issue) => ({
+      path: issue.path.join('.') || 'body',
+      message: issue.message,
+    }));
+    const first = details[0];
     void reply.status(400).send({
       error: {
         code: 'VALIDATION_ERROR',
-        message: first ? `${first.path.join('.') || 'body'}: ${first.message}` : 'Invalid input.',
+        message: first ? `${first.path}: ${first.message}` : 'Invalid input.',
+        details,
       },
     });
     return;
