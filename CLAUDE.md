@@ -96,7 +96,7 @@ In development. Done so far:
 
 - Monorepo scaffolding (`client/`, `server/`, `shared/`), lint/typecheck green.
 - Landing page and the full 3-step onboarding flow with a 12-hour time picker and deterministic routine preview (client-only; answers in a Zustand store).
-- Fastify server skeleton with `/api/v1/health`.
-- Prisma schema (`server/prisma/schema.prisma`) covering User, Routine, Task, Completion, Reflection, AiInteraction, PushSub, RefreshToken; initial migration in `server/prisma/migrations/0_init/`; `docker-compose.yml` for local Postgres + Redis. Client code generates into `server/src/generated/` (gitignored) via `npm run db:generate`.
+- Prisma schema (`server/prisma/schema.prisma`) covering User, Routine, Task, Completion, Reflection, AiInteraction, PushSub, RefreshToken; migrations applied to local Postgres (`docker compose up -d`, then `npm run db:deploy -w server`). Client code generates into `server/src/generated/` (gitignored) via `npm run db:generate`.
+- Auth (Phase 1, email/password): `/api/v1/auth/signup|login|refresh|logout` + `/api/v1/me` (GET/PATCH/DELETE). Argon2id passwords, 15-min HS256 access tokens, rotating refresh tokens in an httpOnly cookie (hashed in Postgres, replay-safe). Global error handler emits the `{ error: { code, message } }` envelope. Integration tests in `server/test/` run against the docker-compose Postgres (`npm test -w server`).
 
-Next steps: auth (Phase 1 in TECHNICAL_ARCHITECTURE.md), then routine/checklist CRUD wired to the database.
+Not yet done from Phase 1: Google OAuth, email verification, CSV export. Next steps: routine/task CRUD + daily checklist (Phase 2), then client auth UI wired to these endpoints.
