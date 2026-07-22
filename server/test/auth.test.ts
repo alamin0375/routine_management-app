@@ -52,6 +52,20 @@ describe('signup', () => {
     expect(refreshCookieOf(res)).toBeTruthy();
   });
 
+  it('seeds exactly the 4 default task categories for the new user', async () => {
+    const email = testEmail();
+    createdEmails.push(email);
+    const res = await signup(email);
+    expect(res.statusCode).toBe(201);
+
+    const categories = await app.prisma.taskCategory.findMany({
+      where: { userId: res.json().user.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+    expect(categories.map((c) => c.name)).toEqual(['Study', 'Work', 'Health', 'Personal']);
+    expect(categories.every((c) => /^#[0-9a-f]{6}$/i.test(c.color))).toBe(true);
+  });
+
   it('rejects a duplicate email with EMAIL_TAKEN', async () => {
     const email = testEmail();
     createdEmails.push(email);

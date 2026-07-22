@@ -3,3 +3,5 @@
 export * from './schemas/health.js';
 export * from './schemas/auth.js';
 export * from './schemas/routines.js';
+export * from './schemas/categories.js';
+export * from './schemas/tasks.js';

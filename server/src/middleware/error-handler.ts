@@ -16,7 +16,7 @@ export function errorHandler(
   if (error instanceof AppError) {
     void reply
       .status(error.statusCode)
-      .send({ error: { code: error.code, message: error.message } });
+      .send({ error: { code: error.code, message: error.message, ...error.meta } });
     return;
   }
 

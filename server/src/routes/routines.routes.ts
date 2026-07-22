@@ -1,5 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { z } from 'zod';
+import type { FastifyInstance } from 'fastify';
 import {
   createRoutineRequestSchema,
   routineListResponseSchema,
@@ -10,7 +9,7 @@ import {
 } from '@routine-app/shared';
 import type { Routine } from '../generated/prisma/client.js';
 import { requireAuth } from '../middleware/require-auth.js';
-import { notFoundError } from '../services/errors.js';
+import { idParamOf } from '../lib/route-params.js';
 
 // /api/v1/routines — thin routes: parse with shared schemas → RoutineService
 // → respond. All protected; ownership misses are 404s (see RoutineService).
@@ -24,16 +23,6 @@ export function toRoutineDto(routine: Routine): RoutineDto {
     createdAt: routine.createdAt.toISOString(),
     updatedAt: routine.updatedAt.toISOString(),
   };
-}
-
-const paramsSchema = z.object({ id: z.string().uuid() });
-
-// A malformed id can't match anything — treat it as a 404, not a validation
-// error, so probing with junk ids looks identical to probing with valid ones.
-function idOf(request: FastifyRequest): string {
-  const parsed = paramsSchema.safeParse(request.params);
-  if (!parsed.success) throw notFoundError('Routine');
-  return parsed.data.id;
 }
 
 export async function routineRoutes(app: FastifyInstance) {
@@ -50,13 +39,13 @@ export async function routineRoutes(app: FastifyInstance) {
   });
 
   app.get('/routines/:id', { preHandler: requireAuth }, async (request): Promise<RoutineDto> => {
-    const routine = await app.routineService.get(request.userId, idOf(request));
+    const routine = await app.routineService.get(request.userId, idParamOf(request, 'Routine'));
     return routineSchema.parse(toRoutineDto(routine));
   });
 
   app.patch('/routines/:id', { preHandler: requireAuth }, async (request): Promise<RoutineDto> => {
     const body = updateRoutineRequestSchema.parse(request.body);
-    const routine = await app.routineService.update(request.userId, idOf(request), body);
+    const routine = await app.routineService.update(request.userId, idParamOf(request, 'Routine'), body);
     return routineSchema.parse(toRoutineDto(routine));
   });
 
@@ -64,7 +53,7 @@ export async function routineRoutes(app: FastifyInstance) {
     '/routines/:id',
     { preHandler: requireAuth },
     async (request): Promise<{ ok: true }> => {
-      await app.routineService.delete(request.userId, idOf(request));
+      await app.routineService.delete(request.userId, idParamOf(request, 'Routine'));
       return { ok: true };
     },
   );

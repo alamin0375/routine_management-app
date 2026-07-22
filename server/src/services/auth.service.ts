@@ -3,6 +3,7 @@ import argon2 from 'argon2';
 import { SignJWT, jwtVerify } from 'jose';
 import type { PrismaClient, User } from '../generated/prisma/client.js';
 import type { Env } from '../config/env.js';
+import { ensureDefaultCategories } from '../lib/default-categories.js';
 import {
   emailTakenError,
   invalidCredentialsError,
@@ -42,8 +43,14 @@ export class AuthService {
     if (existing) throw emailTakenError();
 
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    const user = await this.prisma.user.create({
-      data: { email: normalizedEmail, passwordHash, timezone },
+    // User + default task categories are created atomically — no user ever
+    // observes a half-seeded account.
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { email: normalizedEmail, passwordHash, timezone },
+      });
+      await ensureDefaultCategories(tx, created.id);
+      return created;
     });
     return { user, tokens: await this.issueTokens(user.id) };
   }

@@ -28,6 +28,33 @@ enum CompletionSource {
   OFFLINE_SYNC
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum TaskSource {
+  MANUAL
+  AI
+  EXTENSION
+}
+
+enum TaskInstanceStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+  RESCHEDULED
+}
+
 model User {
   id            String   @id @default(uuid()) @db.Uuid
   email         String   @unique
@@ -40,6 +67,9 @@ model User {
   updatedAt     DateTime @updatedAt
 
   routines       Routine[]
+  tasks          Task[]
+  taskCategories TaskCategory[]
+  taskInstances  TaskInstance[]
   completions    Completion[]
   reflections    Reflection[]
   aiInteractions AiInteraction[]
@@ -62,20 +92,85 @@ model Routine {
   @@index([userId])
 }
 
+// Task is a TEMPLATE ("Study React, weekdays, 7-8pm") — never checked off
+// directly. TaskInstance rows (one per occurrence date) are what users
+// complete. See TASK_SYSTEM_SPEC.md §2.
 model Task {
-  id         String  @id @default(uuid()) @db.Uuid
-  routineId  String  @db.Uuid
-  name       String
-  targetTime String? // "HH:mm" in the user's timezone; null = flexible block
-  daysOfWeek Int[] // ISO weekday numbers 1 (Mon) - 7 (Sun); empty = every day
-  sortOrder  Int     @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String         @id @default(uuid()) @db.Uuid
+  userId               String         @db.Uuid
+  routineId            String?        @db.Uuid // standalone tasks allowed
+  title                String
+  notes                String?
+  categoryId           String?        @db.Uuid
+  color                String? // hex; overrides the category color
+  priority             Priority       @default(MEDIUM)
+  startTime            String? // "HH:mm" wall-clock in the user's timezone (never UTC instants — must survive DST)
+  endTime              String? // "HH:mm", same convention
+  durationMinutes      Int? // used when start/end times unset
+  recurrenceType       RecurrenceType @default(NONE)
+  recurrenceDays       Int[] // weekdays 0=Sun..6=Sat (JS Date.getDay() numbering), for WEEKLY
+  recurrenceDayOfMonth Int? // 1-31, for MONTHLY; clamps to last day of shorter months
+  startDate            DateTime       @db.Date
+  endDate              DateTime?      @db.Date // null = forever
+  sortOrder            Int            @default(0)
+  // Boolean soft-delete per the Task System spec; Routine deliberately keeps
+  // its older archivedAt-timestamp convention — the two coexist.
+  isArchived           Boolean        @default(false)
+  attachments          Json? // reserved for a future phase; no upload endpoints yet
+  source               TaskSource     @default(MANUAL)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
-  routine     Routine      @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routine     Routine?      @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  category    TaskCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   completions Completion[]
+  instances   TaskInstance[]
 
+  @@index([userId, isArchived])
   @@index([routineId])
+  @@index([userId, startDate])
+}
+
+// User-owned grouping (Study, Health, ...) with a display color. Four
+// defaults are seeded per user at signup (see DEFAULT_TASK_CATEGORIES).
+model TaskCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  color     String // hex, required
+  icon      String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// One occurrence of a Task on a specific local calendar date — the thing a
+// user actually completes. Materialized lazily by GET /tasks/today; the
+// (taskId, date) unique makes materialization idempotent under concurrency.
+model TaskInstance {
+  id                String             @id @default(uuid()) @db.Uuid
+  taskId            String             @db.Uuid
+  userId            String             @db.Uuid // denormalized for (userId, date) queries
+  date              DateTime           @db.Date // local calendar date in the user's timezone
+  status            TaskInstanceStatus @default(PENDING) // Phase 4 adds COMPLETED/RESCHEDULED transitions
+  overrideStartTime String? // "HH:mm"; per-day override of the template time
+  overrideEndTime   String? // "HH:mm"
+  overrideNotes     String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
+  @@index([userId, date])
 }
 
 model Completion {

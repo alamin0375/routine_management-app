@@ -6,11 +6,16 @@ import type { Env } from './config/env.js';
 import { getPrisma, disconnectPrisma } from './db/client.js';
 import { AuthService } from './services/auth.service.js';
 import { RoutineService } from './services/routine.service.js';
+import { CategoryService } from './services/category.service.js';
+import { TaskService } from './services/task.service.js';
+import { InstanceService } from './services/instance.service.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { healthRoutes } from './routes/health.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { meRoutes } from './routes/me.routes.js';
 import { routineRoutes } from './routes/routines.routes.js';
+import { categoryRoutes } from './routes/categories.routes.js';
+import { taskRoutes } from './routes/tasks.routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -18,6 +23,9 @@ declare module 'fastify' {
     prisma: PrismaClient;
     authService: AuthService;
     routineService: RoutineService;
+    categoryService: CategoryService;
+    taskService: TaskService;
+    instanceService: InstanceService;
   }
 }
 
@@ -45,6 +53,9 @@ export async function buildApp(env: Env) {
   app.decorate('prisma', prisma);
   app.decorate('authService', new AuthService(prisma, env));
   app.decorate('routineService', new RoutineService(prisma));
+  app.decorate('categoryService', new CategoryService(prisma));
+  app.decorate('taskService', new TaskService(prisma));
+  app.decorate('instanceService', new InstanceService(prisma));
   app.addHook('onClose', async () => {
     await disconnectPrisma();
   });
@@ -53,6 +64,8 @@ export async function buildApp(env: Env) {
   await app.register(authRoutes, { prefix: '/api/v1' });
   await app.register(meRoutes, { prefix: '/api/v1' });
   await app.register(routineRoutes, { prefix: '/api/v1' });
+  await app.register(categoryRoutes, { prefix: '/api/v1' });
+  await app.register(taskRoutes, { prefix: '/api/v1' });
 
   return app;
 }
